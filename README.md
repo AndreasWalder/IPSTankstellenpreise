@@ -8,6 +8,7 @@ IP-Symcon Modul für Österreich / Osttirol mit offizieller E-Control Spritpreis
 - Variablen für günstigste Tankstelle
 - Kartenlink (Google Maps oder OpenStreetMap)
 - Top-5 Anzeige als HTML
+- Postleitzahlen-Ausnahmeliste (kommagetrennt, z. B. `9841`)
 
 ## Standardwerte
 - Standort: Lienz / Osttirol
@@ -20,7 +21,8 @@ IP-Symcon Modul für Österreich / Osttirol mit offizieller E-Control Spritpreis
 2. In IP-Symcon Module neu laden.
 3. Instanz `TankstellenpreiseAT` anlegen.
 4. Koordinaten / Radius / Kraftstoff einstellen.
-5. Auf `Jetzt aktualisieren` klicken.
+5. Optional ausgeschlossene Postleitzahlen eintragen (z. B. `9841`).
+6. Auf `Jetzt aktualisieren` klicken.
 
 ## Hinweise
 - Datenquelle: offizielle E-Control Spritpreisrechner API.
