@@ -302,6 +302,7 @@ class TankstellenpreiseAT extends IPSModule
                 'name' => (string) ($entry['name'] ?? $entry['company'] ?? 'Unbekannte Tankstelle'),
                 'price' => $price,
                 'distance' => round((float) ($entry['distance'] ?? 0), 2),
+                'postalCode' => $this->ExtractPostalCode($entry),
                 'address' => $this->BuildAddress($entry),
                 'lastUpdated' => $this->ExtractLastUpdated($entry),
                 'latitude' => $this->NormalizeCoordinate($this->ExtractLatitude($entry)),
@@ -561,6 +562,7 @@ class TankstellenpreiseAT extends IPSModule
         $html .= '<th style="text-align:left; border-bottom:1px solid #ccc; padding:4px;">Name</th>';
         $html .= '<th style="text-align:left; border-bottom:1px solid #ccc; padding:4px;">Preis</th>';
         $html .= '<th style="text-align:left; border-bottom:1px solid #ccc; padding:4px;">km</th>';
+        $html .= '<th style="text-align:left; border-bottom:1px solid #ccc; padding:4px;">PLZ</th>';
         $html .= '<th style="text-align:left; border-bottom:1px solid #ccc; padding:4px;">Adresse</th>';
         $html .= '</tr>';
 
@@ -570,6 +572,7 @@ class TankstellenpreiseAT extends IPSModule
             $html .= '<td style="padding:4px; border-bottom:1px solid #eee;">' . htmlspecialchars((string) $station['name'], ENT_QUOTES) . '</td>';
             $html .= '<td style="padding:4px; border-bottom:1px solid #eee;">' . number_format((float) $station['price'], 3, ',', '.') . ' €/L</td>';
             $html .= '<td style="padding:4px; border-bottom:1px solid #eee;">' . number_format((float) $station['distance'], 2, ',', '.') . '</td>';
+            $html .= '<td style="padding:4px; border-bottom:1px solid #eee;">' . htmlspecialchars((string) ($station['postalCode'] ?? ''), ENT_QUOTES) . '</td>';
             $html .= '<td style="padding:4px; border-bottom:1px solid #eee;">' . htmlspecialchars((string) $station['address'], ENT_QUOTES) . '</td>';
             $html .= '</tr>';
         }
