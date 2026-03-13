@@ -5,7 +5,7 @@ IP-Symcon Modul für Österreich / Osttirol mit offizieller E-Control Spritpreis
 ## Funktionen
 - Config GUI
 - Timer für automatische Aktualisierung
-- Variablen für billigste Tankstelle
+- Variablen für günstigste Tankstelle
 - Kartenlink (Google Maps oder OpenStreetMap)
 - Top-5 Anzeige als HTML
 
