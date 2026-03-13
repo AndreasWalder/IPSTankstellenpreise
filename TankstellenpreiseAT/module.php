@@ -37,10 +37,10 @@ class TankstellenpreiseAT extends IPSModule
         $this->RegisterVariableFloat('CheapestStationDistance', 'Entfernung (km)', 'TSPAT.DistanceKm', 30);
         $this->RegisterVariableString('CheapestStationAddress', 'Adresse', '', 40);
         $this->RegisterVariableString('CheapestStationLastUpdated', 'Preis zuletzt gemeldet', '', 50);
-        $this->RegisterVariableString('LastUpdate', 'Letzte Aktualisierung', '~String', 60);
+        $this->RegisterVariableString('LastUpdate', 'Letzte Aktualisierung', '', 60);
         $this->RegisterVariableString('MapsLink', 'Kartenlink', '~HTMLBox', 70);
         $this->RegisterVariableString('Top5Html', 'Top-5 Anzeige', '~HTMLBox', 80);
-        $this->RegisterVariableString('RawJson', 'Raw JSON', '~String', 90);
+        $this->RegisterVariableString('RawJson', 'Raw JSON', '', 90);
     }
 
     private function EnsureVariableProfiles(): void
