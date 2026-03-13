@@ -199,7 +199,13 @@ class TankstellenpreiseAT extends IPSModule
                 throw new Exception('API-Antwort ist kein gültiges JSON.');
             }
 
-            $stations = $this->ExtractStations($decoded);
+            $filteredDecoded = $this->FilterExcludedPostalCodesFromDecoded($decoded);
+            $filteredJson = json_encode($filteredDecoded);
+            if (!is_string($filteredJson)) {
+                $filteredJson = $json;
+            }
+
+            $stations = $this->ExtractStations($filteredDecoded);
 
             if (count($stations) === 0) {
                 $this->SetValue('CheapestStationName', 'Keine Tankstelle gefunden');
@@ -210,7 +216,7 @@ class TankstellenpreiseAT extends IPSModule
                 $this->SetValue('MapsLink', $this->BuildInfoHtml('Keine Tankstellen im gewählten Radius gefunden.'));
                 $this->SetValue('Top5Html', $this->BuildInfoHtml('Keine Daten vorhanden.'));
                 $this->SetValue('LastUpdate', date('d.m.Y H:i:s'));
-                $this->SetValue('RawJson', $json);
+                $this->SetValue('RawJson', $filteredJson);
                 $this->SendDebug('Update', 'Keine Tankstellen gefunden', 0);
                 $this->SetStatus(102);
                 return;
@@ -235,9 +241,9 @@ class TankstellenpreiseAT extends IPSModule
             $this->SetValue('MapsLink', $this->BuildMapsHtml($cheapest));
             $this->SetValue('Top5Html', $this->BuildTop5Html(array_slice($stations, 0, 5), $fuelType));
             $this->SetValue('LastUpdate', date('d.m.Y H:i:s'));
-            $this->SetValue('RawJson', $json);
+            $this->SetValue('RawJson', $filteredJson);
 
-            $this->SendDebug('Update', $json, 0);
+            $this->SendDebug('Update', $filteredJson, 0);
             $this->SetStatus(102);
         } catch (Throwable $e) {
             $this->SetStatus(200);
@@ -304,6 +310,49 @@ class TankstellenpreiseAT extends IPSModule
         }
 
         return $stations;
+    }
+
+    private function FilterExcludedPostalCodesFromDecoded(array $decoded): array
+    {
+        $excludedPostalCodes = $this->GetExcludedPostalCodes();
+        if ($excludedPostalCodes === []) {
+            return $decoded;
+        }
+
+        if (isset($decoded['gasStations']) && is_array($decoded['gasStations'])) {
+            $decoded['gasStations'] = $this->FilterEntriesByPostalCode($decoded['gasStations'], $excludedPostalCodes);
+            return $decoded;
+        }
+
+        if (isset($decoded['results']) && is_array($decoded['results'])) {
+            $decoded['results'] = $this->FilterEntriesByPostalCode($decoded['results'], $excludedPostalCodes);
+            return $decoded;
+        }
+
+        if (array_is_list($decoded)) {
+            return $this->FilterEntriesByPostalCode($decoded, $excludedPostalCodes);
+        }
+
+        return $decoded;
+    }
+
+    private function FilterEntriesByPostalCode(array $entries, array $excludedPostalCodes): array
+    {
+        $filtered = [];
+        foreach ($entries as $entry) {
+            if (!is_array($entry)) {
+                $filtered[] = $entry;
+                continue;
+            }
+
+            if ($this->IsPostalCodeExcluded($entry, $excludedPostalCodes)) {
+                continue;
+            }
+
+            $filtered[] = $entry;
+        }
+
+        return $filtered;
     }
 
     private function GetExcludedPostalCodes(): array
