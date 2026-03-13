@@ -479,7 +479,7 @@ class TankstellenpreiseAT extends IPSModule
 
     private function NormalizeCoordinate(float $value): float
     {
-        return round($value, 5);
+        return round($value, 7);
     }
 
     private function BuildAddress(array $entry): string
