@@ -82,12 +82,14 @@ class TankstellenpreiseAT extends IPSModule
                         [
                             'type' => 'NumberSpinner',
                             'name' => 'Latitude',
-                            'caption' => 'Breitengrad'
+                            'caption' => 'Breitengrad',
+                            'digits' => 5
                         ],
                         [
                             'type' => 'NumberSpinner',
                             'name' => 'Longitude',
-                            'caption' => 'Längengrad'
+                            'caption' => 'Längengrad',
+                            'digits' => 5
                         ],
                         [
                             'type' => 'NumberSpinner',
