@@ -9,6 +9,8 @@ declare(strict_types=1);
  * ============================================================
  *
  * Änderungsverlauf (Changelog)
+ * 2026-03-13: v1.1 — Postleitzahl-Ausnahmeliste ergänzt,
+ *             über GUI konfigurierbar.
  * 2026-03-13: v1.0 — Initiale Version mit Config GUI, Timer,
  *             Variablen, Kartenlink und Top-5 Anzeige.
  */
@@ -29,6 +31,7 @@ class TankstellenpreiseAT extends IPSModule
         $this->RegisterPropertyBoolean('IncludeClosed', false);
         $this->RegisterPropertyInteger('UpdateIntervalMinutes', 15);
         $this->RegisterPropertyString('MapsProvider', 'google');
+        $this->RegisterPropertyString('ExcludedPostalCodes', '');
 
         $this->RegisterTimer('UpdateTimer', 0, 'IPS_RequestAction($_IPS["TARGET"], "InternalUpdate", true);');
 
@@ -130,6 +133,11 @@ class TankstellenpreiseAT extends IPSModule
                                 ['caption' => 'Google Maps', 'value' => 'google'],
                                 ['caption' => 'OpenStreetMap', 'value' => 'osm']
                             ]
+                        ],
+                        [
+                            'type' => 'ValidationTextBox',
+                            'name' => 'ExcludedPostalCodes',
+                            'caption' => 'Ausgeschlossene Postleitzahlen (kommagetrennt, z. B. 9841, 9900)'
                         ]
                     ]
                 ]
@@ -257,6 +265,7 @@ class TankstellenpreiseAT extends IPSModule
 
     private function ExtractStations(array $decoded): array
     {
+        $excludedPostalCodes = $this->GetExcludedPostalCodes();
         $candidates = [];
 
         if (isset($decoded['gasStations']) && is_array($decoded['gasStations'])) {
@@ -278,6 +287,10 @@ class TankstellenpreiseAT extends IPSModule
                 continue;
             }
 
+            if ($this->IsPostalCodeExcluded($entry, $excludedPostalCodes)) {
+                continue;
+            }
+
             $stations[] = [
                 'name' => (string) ($entry['name'] ?? $entry['company'] ?? 'Unbekannte Tankstelle'),
                 'price' => $price,
@@ -290,6 +303,46 @@ class TankstellenpreiseAT extends IPSModule
         }
 
         return $stations;
+    }
+
+    private function GetExcludedPostalCodes(): array
+    {
+        $raw = $this->ReadPropertyString('ExcludedPostalCodes');
+        if (trim($raw) === '') {
+            return [];
+        }
+
+        $items = explode(',', $raw);
+        $codes = [];
+        foreach ($items as $item) {
+            $code = preg_replace('/\D+/', '', $item);
+            if ($code !== null && $code !== '') {
+                $codes[] = $code;
+            }
+        }
+
+        return array_values(array_unique($codes));
+    }
+
+    private function IsPostalCodeExcluded(array $entry, array $excludedPostalCodes): bool
+    {
+        if ($excludedPostalCodes === []) {
+            return false;
+        }
+
+        $postalCode = '';
+        if (isset($entry['address']) && is_array($entry['address'])) {
+            $postalCode = (string) ($entry['address']['postalCode'] ?? '');
+        } else {
+            $postalCode = (string) ($entry['postalCode'] ?? '');
+        }
+
+        $postalCode = preg_replace('/\D+/', '', $postalCode) ?? '';
+        if ($postalCode === '') {
+            return false;
+        }
+
+        return in_array($postalCode, $excludedPostalCodes, true);
     }
 
     private function ExtractPrice(array $entry): ?float
