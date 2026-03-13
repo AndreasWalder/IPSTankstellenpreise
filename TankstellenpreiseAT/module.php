@@ -9,6 +9,9 @@ declare(strict_types=1);
  * ============================================================
  *
  * Änderungsverlauf (Changelog)
+ * 2026-03-13: v1.2 — PLZ-Filter korrigiert (inkl. location.postalCode).
+ * 2026-03-13: v1.1 — Postleitzahl-Ausnahmeliste ergänzt,
+ *             über GUI konfigurierbar.
  * 2026-03-13: v1.0 — Initiale Version mit Config GUI, Timer,
  *             Variablen, Kartenlink und Top-5 Anzeige.
  */
@@ -29,6 +32,7 @@ class TankstellenpreiseAT extends IPSModule
         $this->RegisterPropertyBoolean('IncludeClosed', false);
         $this->RegisterPropertyInteger('UpdateIntervalMinutes', 15);
         $this->RegisterPropertyString('MapsProvider', 'google');
+        $this->RegisterPropertyString('ExcludedPostalCodes', '');
 
         $this->RegisterTimer('UpdateTimer', 0, 'IPS_RequestAction($_IPS["TARGET"], "InternalUpdate", true);');
 
@@ -130,6 +134,11 @@ class TankstellenpreiseAT extends IPSModule
                                 ['caption' => 'Google Maps', 'value' => 'google'],
                                 ['caption' => 'OpenStreetMap', 'value' => 'osm']
                             ]
+                        ],
+                        [
+                            'type' => 'ValidationTextBox',
+                            'name' => 'ExcludedPostalCodes',
+                            'caption' => 'Ausgeschlossene Postleitzahlen (kommagetrennt, z. B. 9841, 9900)'
                         ]
                     ]
                 ]
@@ -257,6 +266,7 @@ class TankstellenpreiseAT extends IPSModule
 
     private function ExtractStations(array $decoded): array
     {
+        $excludedPostalCodes = $this->GetExcludedPostalCodes();
         $candidates = [];
 
         if (isset($decoded['gasStations']) && is_array($decoded['gasStations'])) {
@@ -278,6 +288,10 @@ class TankstellenpreiseAT extends IPSModule
                 continue;
             }
 
+            if ($this->IsPostalCodeExcluded($entry, $excludedPostalCodes)) {
+                continue;
+            }
+
             $stations[] = [
                 'name' => (string) ($entry['name'] ?? $entry['company'] ?? 'Unbekannte Tankstelle'),
                 'price' => $price,
@@ -290,6 +304,63 @@ class TankstellenpreiseAT extends IPSModule
         }
 
         return $stations;
+    }
+
+    private function GetExcludedPostalCodes(): array
+    {
+        $raw = $this->ReadPropertyString('ExcludedPostalCodes');
+        if (trim($raw) === '') {
+            return [];
+        }
+
+        $items = explode(',', $raw);
+        $codes = [];
+        foreach ($items as $item) {
+            $code = preg_replace('/\D+/', '', $item);
+            if ($code !== null && $code !== '') {
+                $codes[] = $code;
+            }
+        }
+
+        return array_values(array_unique($codes));
+    }
+
+    private function IsPostalCodeExcluded(array $entry, array $excludedPostalCodes): bool
+    {
+        if ($excludedPostalCodes === []) {
+            return false;
+        }
+
+        $postalCode = $this->ExtractPostalCode($entry);
+        if ($postalCode === '') {
+            return false;
+        }
+
+        return in_array($postalCode, $excludedPostalCodes, true);
+    }
+
+    private function ExtractPostalCode(array $entry): string
+    {
+        $sources = [];
+
+        if (isset($entry['location']) && is_array($entry['location'])) {
+            $sources[] = (string) ($entry['location']['postalCode'] ?? '');
+        }
+
+        if (isset($entry['address']) && is_array($entry['address'])) {
+            $sources[] = (string) ($entry['address']['postalCode'] ?? '');
+        }
+
+        $sources[] = (string) ($entry['postalCode'] ?? '');
+
+        foreach ($sources as $source) {
+            $postalCode = preg_replace('/\D+/', '', $source) ?? '';
+            if ($postalCode !== '') {
+                return $postalCode;
+            }
+        }
+
+        return '';
     }
 
     private function ExtractPrice(array $entry): ?float
@@ -365,7 +436,18 @@ class TankstellenpreiseAT extends IPSModule
     {
         $parts = [];
 
-        if (isset($entry['address']) && is_array($entry['address'])) {
+        if (isset($entry['location']) && is_array($entry['location'])) {
+            $location = $entry['location'];
+            $street = trim((string) ($location['address'] ?? ''));
+            $city = trim(((string) ($location['postalCode'] ?? '')) . ' ' . ((string) ($location['city'] ?? '')));
+
+            if ($street !== '') {
+                $parts[] = $street;
+            }
+            if ($city !== '') {
+                $parts[] = $city;
+            }
+        } elseif (isset($entry['address']) && is_array($entry['address'])) {
             $address = $entry['address'];
             $street = trim(((string) ($address['street'] ?? '')) . ' ' . ((string) ($address['houseNumber'] ?? '')));
             $city = trim(((string) ($address['postalCode'] ?? '')) . ' ' . ((string) ($address['city'] ?? '')));
