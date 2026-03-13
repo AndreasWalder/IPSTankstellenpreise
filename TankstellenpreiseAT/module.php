@@ -32,7 +32,7 @@ class TankstellenpreiseAT extends IPSModule
 
         $this->RegisterTimer('UpdateTimer', 0, 'IPS_RequestAction($_IPS["TARGET"], "InternalUpdate", true);');
 
-        $this->RegisterVariableString('CheapestStationName', 'Billigste Tankstelle', '', 10);
+        $this->RegisterVariableString('CheapestStationName', 'Günstigste Tankstelle', '', 10);
         $this->RegisterVariableFloat('CheapestStationPrice', 'Preis (€/L)', 'TSPAT.Euro2', 20);
         $this->RegisterVariableFloat('CheapestStationDistance', 'Entfernung (km)', 'TSPAT.DistanceKm', 30);
         $this->RegisterVariableString('CheapestStationAddress', 'Adresse', '', 40);
@@ -164,8 +164,8 @@ class TankstellenpreiseAT extends IPSModule
 
     public function Update(): void
     {
-        $lat = $this->ReadPropertyFloat('Latitude');
-        $lon = $this->ReadPropertyFloat('Longitude');
+        $lat = $this->NormalizeCoordinate($this->ReadPropertyFloat('Latitude'));
+        $lon = $this->NormalizeCoordinate($this->ReadPropertyFloat('Longitude'));
         $radius = max(1, $this->ReadPropertyInteger('RadiusKm'));
         $fuelType = $this->NormalizeFuelType($this->ReadPropertyString('FuelType'));
         $includeClosed = $this->ReadPropertyBoolean('IncludeClosed') ? 'true' : 'false';
@@ -282,8 +282,8 @@ class TankstellenpreiseAT extends IPSModule
                 'distance' => round((float) ($entry['distance'] ?? 0), 2),
                 'address' => $this->BuildAddress($entry),
                 'lastUpdated' => $this->ExtractLastUpdated($entry),
-                'latitude' => $this->ExtractLatitude($entry),
-                'longitude' => $this->ExtractLongitude($entry)
+                'latitude' => $this->NormalizeCoordinate($this->ExtractLatitude($entry)),
+                'longitude' => $this->NormalizeCoordinate($this->ExtractLongitude($entry))
             ];
         }
 
@@ -352,6 +352,11 @@ class TankstellenpreiseAT extends IPSModule
         }
 
         return 0.0;
+    }
+
+    private function NormalizeCoordinate(float $value): float
+    {
+        return round($value, 5);
     }
 
     private function BuildAddress(array $entry): string
