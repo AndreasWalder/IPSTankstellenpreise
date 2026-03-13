@@ -9,6 +9,7 @@ declare(strict_types=1);
  * ============================================================
  *
  * Änderungsverlauf (Changelog)
+ * 2026-03-13: v1.2 — PLZ-Filter korrigiert (inkl. location.postalCode).
  * 2026-03-13: v1.1 — Postleitzahl-Ausnahmeliste ergänzt,
  *             über GUI konfigurierbar.
  * 2026-03-13: v1.0 — Initiale Version mit Config GUI, Timer,
@@ -330,19 +331,36 @@ class TankstellenpreiseAT extends IPSModule
             return false;
         }
 
-        $postalCode = '';
-        if (isset($entry['address']) && is_array($entry['address'])) {
-            $postalCode = (string) ($entry['address']['postalCode'] ?? '');
-        } else {
-            $postalCode = (string) ($entry['postalCode'] ?? '');
-        }
-
-        $postalCode = preg_replace('/\D+/', '', $postalCode) ?? '';
+        $postalCode = $this->ExtractPostalCode($entry);
         if ($postalCode === '') {
             return false;
         }
 
         return in_array($postalCode, $excludedPostalCodes, true);
+    }
+
+    private function ExtractPostalCode(array $entry): string
+    {
+        $sources = [];
+
+        if (isset($entry['location']) && is_array($entry['location'])) {
+            $sources[] = (string) ($entry['location']['postalCode'] ?? '');
+        }
+
+        if (isset($entry['address']) && is_array($entry['address'])) {
+            $sources[] = (string) ($entry['address']['postalCode'] ?? '');
+        }
+
+        $sources[] = (string) ($entry['postalCode'] ?? '');
+
+        foreach ($sources as $source) {
+            $postalCode = preg_replace('/\D+/', '', $source) ?? '';
+            if ($postalCode !== '') {
+                return $postalCode;
+            }
+        }
+
+        return '';
     }
 
     private function ExtractPrice(array $entry): ?float
@@ -418,7 +436,18 @@ class TankstellenpreiseAT extends IPSModule
     {
         $parts = [];
 
-        if (isset($entry['address']) && is_array($entry['address'])) {
+        if (isset($entry['location']) && is_array($entry['location'])) {
+            $location = $entry['location'];
+            $street = trim((string) ($location['address'] ?? ''));
+            $city = trim(((string) ($location['postalCode'] ?? '')) . ' ' . ((string) ($location['city'] ?? '')));
+
+            if ($street !== '') {
+                $parts[] = $street;
+            }
+            if ($city !== '') {
+                $parts[] = $city;
+            }
+        } elseif (isset($entry['address']) && is_array($entry['address'])) {
             $address = $entry['address'];
             $street = trim(((string) ($address['street'] ?? '')) . ' ' . ((string) ($address['houseNumber'] ?? '')));
             $city = trim(((string) ($address['postalCode'] ?? '')) . ' ' . ((string) ($address['city'] ?? '')));
