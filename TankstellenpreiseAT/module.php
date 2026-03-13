@@ -20,6 +20,8 @@ class TankstellenpreiseAT extends IPSModule
     {
         parent::Create();
 
+        $this->EnsureVariableProfiles();
+
         $this->RegisterPropertyFloat('Latitude', 46.8276);
         $this->RegisterPropertyFloat('Longitude', 12.7695);
         $this->RegisterPropertyInteger('RadiusKm', 25);
@@ -31,14 +33,29 @@ class TankstellenpreiseAT extends IPSModule
         $this->RegisterTimer('UpdateTimer', 0, 'IPS_RequestAction($_IPS["TARGET"], "InternalUpdate", true);');
 
         $this->RegisterVariableString('CheapestStationName', 'Billigste Tankstelle', '', 10);
-        $this->RegisterVariableFloat('CheapestStationPrice', 'Preis (€/L)', '~Euro.2', 20);
-        $this->RegisterVariableFloat('CheapestStationDistance', 'Entfernung (km)', '~Float', 30);
+        $this->RegisterVariableFloat('CheapestStationPrice', 'Preis (€/L)', 'TSPAT.Euro2', 20);
+        $this->RegisterVariableFloat('CheapestStationDistance', 'Entfernung (km)', 'TSPAT.DistanceKm', 30);
         $this->RegisterVariableString('CheapestStationAddress', 'Adresse', '', 40);
         $this->RegisterVariableString('CheapestStationLastUpdated', 'Preis zuletzt gemeldet', '', 50);
         $this->RegisterVariableString('LastUpdate', 'Letzte Aktualisierung', '~String', 60);
         $this->RegisterVariableString('MapsLink', 'Kartenlink', '~HTMLBox', 70);
         $this->RegisterVariableString('Top5Html', 'Top-5 Anzeige', '~HTMLBox', 80);
         $this->RegisterVariableString('RawJson', 'Raw JSON', '~String', 90);
+    }
+
+    private function EnsureVariableProfiles(): void
+    {
+        if (!IPS_VariableProfileExists('TSPAT.Euro2')) {
+            IPS_CreateVariableProfile('TSPAT.Euro2', VARIABLETYPE_FLOAT);
+        }
+        IPS_SetVariableProfileText('TSPAT.Euro2', '', ' €');
+        IPS_SetVariableProfileDigits('TSPAT.Euro2', 3);
+
+        if (!IPS_VariableProfileExists('TSPAT.DistanceKm')) {
+            IPS_CreateVariableProfile('TSPAT.DistanceKm', VARIABLETYPE_FLOAT);
+        }
+        IPS_SetVariableProfileText('TSPAT.DistanceKm', '', ' km');
+        IPS_SetVariableProfileDigits('TSPAT.DistanceKm', 2);
     }
 
     public function ApplyChanges(): void
